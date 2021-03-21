@@ -171,6 +171,61 @@ def grid_archive_heatmap(archive,
     # Create the colorbar.
     ax.figure.colorbar(t, ax=ax, pad=0.1)
 
+def grid_archive_3d_plot(archive,
+                         ax=None,
+                         transpose_bcs=False,
+                         cmap="ocean",
+                         square=False,
+                         vmin=None,
+                         vmax=None,
+                         pcm_kwargs=None,
+                         x_label="",
+                         y_label="") :
+    #Retrive data from archive.
+    lower_bounds = archive.lower_bounds
+    upper_bounds = archive.upper_bounds
+    x_dim, y_dim = archive.dims
+    x_bounds = np.linspace(lower_bounds[0], upper_bounds[0], x_dim + 1)
+    y_bounds = np.linspace(lower_bounds[1], upper_bounds[1], y_dim + 1)
+
+    # Color for each cell in the heatmap.
+    archive_data = archive.as_pandas(include_solutions=False)
+    colors = np.full((y_dim, x_dim), np.nan)
+    for row in archive_data.itertuples():
+        colors[row.index_1, row.index_0] = row.objective
+    objective_values = archive_data["objective"]
+    
+    if transpose_bcs:
+        # Since the archive is 2D, transpose by swapping the x and y boundaries
+        # and by flipping the bounds (the bounds are arrays of length 2).
+        x_bounds, y_bounds = y_bounds, x_bounds
+        lower_bounds = np.flip(lower_bounds)
+        upper_bounds = np.flip(upper_bounds)
+        colors = colors.T
+        
+    #Initialize the axis
+    ax = plt.subplot(111, projection='3d')
+    ax.xaxis.pane.fill = False
+    ax.xaxis.pane.set_edgecolor('white')
+    ax.yaxis.pane.fill = False
+    ax.yaxis.pane.set_edgecolor('white')
+    ax.zaxis.pane.fill = False
+    ax.zaxis.pane.set_edgecolor('white')
+    ax.grid(False)
+
+    ax.w_zaxis.line.set_lw(0.)
+    ax.set_zticks([])
+    
+    #Create the plot
+    X, Y = np.meshgrid(np.linspace(-1, 1, x_dim), np.linspace(-1, 1, y_dim))
+    
+    vmin = np.min(objective_values) if vmin is None else vmin
+    vmax = np.max(objective_values) if vmax is None else vmax
+    plot = ax.plot_surface(X=X, Y=Y, Z=colors, cmap=cmap, vmin=vmin, vmax=vmax)
+    ax.view_init(elev=50, azim=225)
+    ax.dist=11
+    ax.set_xlabel(x_label,labelpad=20)
+    ax.set_ylabel(y_label, labelpad=20)
 
 def cvt_archive_heatmap(archive,
                         ax=None,
